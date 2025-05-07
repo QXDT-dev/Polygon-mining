@@ -151,286 +151,369 @@
         </div>
     </div>
 
+    <!-- Load Web3 first -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Simple Web3 connection
-        const connectBtn = document.getElementById('connectBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
-        const walletInfo = document.getElementById('walletInfo');
-        const walletAddress = document.getElementById('walletAddress');
-        const dashboard = document.getElementById('dashboard');
-        
-        // Balance elements
-        const qxdtBalance = document.getElementById('qxdtBalance');
-        const usdtBalance = document.getElementById('usdtBalance');
-        const ethBalance = document.getElementById('ethBalance');
-        
-        // Mining elements
-        const currentReward = document.getElementById('currentReward');
-        const cooldownTimer = document.getElementById('cooldownTimer');
-        const cooldownProgress = document.getElementById('cooldownProgress');
-        const mineBtn = document.getElementById('mineBtn');
-        
-        // Action elements
-        const depositBtn = document.getElementById('depositBtn');
-        const claimBtn = document.getElementById('claimBtn');
-        const claimTimer = document.getElementById('claimTimer');
-        const buyAmount = document.getElementById('buyAmount');
-        const buyBtn = document.getElementById('buyBtn');
-        
-        // Toast elements
-        const transactionToast = new bootstrap.Toast(document.getElementById('transactionToast'));
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMessage = document.getElementById('toastMessage');
-        const toastSpinner = document.getElementById('toastSpinner');
-        
-        // Contract details (replace with your actual contract address)
-        const qxdtAddress = "0x68C8EBE58485E266C2a6679526F4a866A8B58920"; // Your QXDT contract address
-        const usdtAddress = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"; // Mainnet USDT
-        
-        // Simplified ABI with only the functions we need
-        const qxdtAbi = [
-            "function balanceOf(address) view returns (uint)",
-            "function getCurrentReward() view returns (uint)",
-            "function lastMinedTime(address) view returns (uint)",
-            "function mine() payable",
-            "function depositAndClaimBack()",
-            "function claimBackUSDT()",
-            "function buyQXDT(uint amount)"
-        ];
-        
-        const usdtAbi = [
-            "function balanceOf(address) view returns (uint)",
-            "function approve(address spender, uint amount) returns (bool)",
-            "function transferFrom(address sender, address recipient, uint amount) returns (bool)"
-        ];
-        
-        let web3;
-        let accounts = [];
-        let qxdtContract;
-        let usdtContract;
-        
-        // Connect Wallet
-        connectBtn.addEventListener('click', async () => {
-            if (window.ethereum) {
+        // Wait for Web3 to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if Web3 is injected
+            if (typeof window.ethereum !== 'undefined' || typeof window.web3 !== 'undefined') {
+                // Use MetaMask's provider
+                window.web3 = new Web3(window.ethereum || window.web3.currentProvider);
+                console.log("Web3 initialized successfully");
+            } else {
+                console.error("No Web3 provider detected");
+                alert("Please install MetaMask or another Web3 provider");
+                return;
+            }
+
+            // Initialize the app after Web3 is ready
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Simple Web3 connection
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const walletInfo = document.getElementById('walletInfo');
+            const walletAddress = document.getElementById('walletAddress');
+            const dashboard = document.getElementById('dashboard');
+            
+            // Balance elements
+            const qxdtBalance = document.getElementById('qxdtBalance');
+            const usdtBalance = document.getElementById('usdtBalance');
+            const ethBalance = document.getElementById('ethBalance');
+            
+            // Mining elements
+            const currentReward = document.getElementById('currentReward');
+            const cooldownTimer = document.getElementById('cooldownTimer');
+            const cooldownProgress = document.getElementById('cooldownProgress');
+            const mineBtn = document.getElementById('mineBtn');
+            
+            // Action elements
+            const depositBtn = document.getElementById('depositBtn');
+            const claimBtn = document.getElementById('claimBtn');
+            const claimTimer = document.getElementById('claimTimer');
+            const buyAmount = document.getElementById('buyAmount');
+            const buyBtn = document.getElementById('buyBtn');
+            
+            // Toast elements
+            const transactionToast = new bootstrap.Toast(document.getElementById('transactionToast'));
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastSpinner = document.getElementById('toastSpinner');
+            
+            // Contract details (replace with your actual contract address)
+            const qxdtAddress = "0x..."; // Your QXDT contract address
+            const usdtAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Mainnet USDT
+            
+            // Simplified ABI with only the functions we need
+            const qxdtAbi = [
+                {
+                    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "getCurrentReward",
+                    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                    "name": "lastMinedTime",
+                    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "mine",
+                    "outputs": [],
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "depositAndClaimBack",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "claimBackUSDT",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"internalType": "uint256", "name": "usdtAmount", "type": "uint256"}],
+                    "name": "buyQXDT",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            
+            const usdtAbi = [
+                {
+                    "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {"internalType": "address", "name": "spender", "type": "address"},
+                        {"internalType": "uint256", "name": "amount", "type": "uint256"}
+                    ],
+                    "name": "approve",
+                    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            
+            let accounts = [];
+            let qxdtContract;
+            let usdtContract;
+            
+            // Initialize contracts
+            if (typeof web3 !== 'undefined') {
+                qxdtContract = new web3.eth.Contract(qxdtAbi, qxdtAddress);
+                usdtContract = new web3.eth.Contract(usdtAbi, usdtAddress);
+                console.log("Contracts initialized");
+            } else {
+                console.error("Web3 not initialized");
+            }
+            
+            // Connect Wallet
+            connectBtn.addEventListener('click', async () => {
+                if (window.ethereum) {
+                    try {
+                        showToast("Connecting...", "Connecting to MetaMask");
+                        
+                        // Request account access
+                        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        
+                        // Update UI
+                        updateWalletInfo();
+                        loadBalances();
+                        
+                        // Hide connect button, show wallet info and dashboard
+                        connectBtn.classList.add('d-none');
+                        walletInfo.classList.remove('d-none');
+                        dashboard.classList.remove('d-none');
+                        
+                        showToast("Connected", "Wallet connected successfully", "success");
+                        
+                    } catch (error) {
+                        showToast("Connection Failed", error.message, "error");
+                        console.error(error);
+                    }
+                } else {
+                    showToast("MetaMask Missing", "Please install MetaMask", "error");
+                }
+            });
+            
+            // Disconnect Wallet
+            disconnectBtn.addEventListener('click', () => {
+                accounts = [];
+                connectBtn.classList.remove('d-none');
+                walletInfo.classList.add('d-none');
+                dashboard.classList.add('d-none');
+            });
+            
+            // Mine QXDT
+            mineBtn.addEventListener('click', async () => {
                 try {
-                    showToast("Connecting...", "Connecting to MetaMask");
+                    showToast("Mining", "Processing mining transaction...");
                     
-                    // Request account access
-                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const miningFee = web3.utils.toWei('0.0001', 'ether');
+                    await qxdtContract.methods.mine().send({
+                        from: accounts[0],
+                        value: miningFee
+                    });
                     
-                    // Initialize Web3
-                    web3 = new Web3(window.ethereum);
-                    
-                    // Initialize contracts
-                    qxdtContract = new web3.eth.Contract(qxdtAbi, qxdtAddress);
-                    usdtContract = new web3.eth.Contract(usdtAbi, usdtAddress);
-                    
-                    // Update UI
-                    updateWalletInfo();
+                    showToast("Success", "Mining successful!", "success");
                     loadBalances();
                     
-                    // Hide connect button, show wallet info and dashboard
-                    connectBtn.classList.add('d-none');
-                    walletInfo.classList.remove('d-none');
-                    dashboard.classList.remove('d-none');
-                    
-                    showToast("Connected", "Wallet connected successfully", "success");
-                    
                 } catch (error) {
-                    showToast("Connection Failed", error.message, "error");
+                    showToast("Error", error.message, "error");
                     console.error(error);
                 }
-            } else {
-                showToast("MetaMask Missing", "Please install MetaMask", "error");
-            }
-        });
-        
-        // Disconnect Wallet
-        disconnectBtn.addEventListener('click', () => {
-            accounts = [];
-            connectBtn.classList.remove('d-none');
-            walletInfo.classList.add('d-none');
-            dashboard.classList.add('d-none');
-        });
-        
-        // Mine QXDT
-        mineBtn.addEventListener('click', async () => {
-            try {
-                showToast("Mining", "Processing mining transaction...");
-                
-                const miningFee = web3.utils.toWei('0.0001', 'ether');
-                await qxdtContract.methods.mine().send({
-                    from: accounts[0],
-                    value: miningFee
-                });
-                
-                showToast("Success", "Mining successful!", "success");
-                loadBalances();
-                
-            } catch (error) {
-                showToast("Error", error.message, "error");
-                console.error(error);
-            }
-        });
-        
-        // Deposit USDT
-        depositBtn.addEventListener('click', async () => {
-            try {
-                showToast("Depositing", "Approving USDT transfer...");
-                
-                // Approve USDT transfer
-                await usdtContract.methods.approve(qxdtAddress, web3.utils.toWei('1', 'ether')).send({
-                    from: accounts[0]
-                });
-                
-                showToast("Depositing", "Completing deposit...");
-                
-                // Complete deposit
-                await qxdtContract.methods.depositAndClaimBack().send({
-                    from: accounts[0]
-                });
-                
-                showToast("Success", "Deposit successful!", "success");
-                loadBalances();
-                
-            } catch (error) {
-                showToast("Error", error.message, "error");
-                console.error(error);
-            }
-        });
-        
-        // Buy QXDT
-        buyBtn.addEventListener('click', async () => {
-            const amount = buyAmount.value;
-            if (!amount || amount <= 0) {
-                showToast("Error", "Please enter a valid amount", "error");
-                return;
-            }
-            
-            try {
-                showToast("Buying", "Approving USDT transfer...");
-                
-                // Approve USDT transfer
-                await usdtContract.methods.approve(qxdtAddress, web3.utils.toWei(amount, 'ether')).send({
-                    from: accounts[0]
-                });
-                
-                showToast("Buying", "Completing purchase...");
-                
-                // Buy QXDT
-                await qxdtContract.methods.buyQXDT(amount).send({
-                    from: accounts[0]
-                });
-                
-                showToast("Success", "Purchase successful!", "success");
-                loadBalances();
-                
-            } catch (error) {
-                showToast("Error", error.message, "error");
-                console.error(error);
-            }
-        });
-        
-        // Update wallet info
-        function updateWalletInfo() {
-            if (accounts.length > 0) {
-                const shortAddress = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-                walletAddress.textContent = shortAddress;
-                walletAddress.title = accounts[0];
-            }
-        }
-        
-        // Load balances
-        async function loadBalances() {
-            if (!accounts.length) return;
-            
-            try {
-                // Get balances
-                const qxdtBal = await qxdtContract.methods.balanceOf(accounts[0]).call();
-                const usdtBal = await usdtContract.methods.balanceOf(accounts[0]).call();
-                const ethBal = await web3.eth.getBalance(accounts[0]);
-                
-                // Display balances
-                qxdtBalance.textContent = (qxdtBal / 1e8).toFixed(2);
-                usdtBalance.textContent = (usdtBal / 1e18).toFixed(2);
-                ethBalance.textContent = parseFloat(web3.utils.fromWei(ethBal, 'ether')).toFixed(4);
-                
-                // Get mining info
-                const reward = await qxdtContract.methods.getCurrentReward().call();
-                currentReward.textContent = (reward / 1e8).toFixed(4);
-                
-                const lastMined = await qxdtContract.methods.lastMinedTime(accounts[0]).call();
-                updateCooldownTimer(lastMined);
-                
-            } catch (error) {
-                console.error("Error loading balances:", error);
-            }
-        }
-        
-        // Update cooldown timer
-        function updateCooldownTimer(lastMinedTime) {
-            const cooldown = 57600; // 16 hours in seconds
-            const lastMined = parseInt(lastMinedTime);
-            const now = Math.floor(Date.now() / 1000);
-            
-            if (lastMined === 0 || now >= lastMined + cooldown) {
-                cooldownTimer.textContent = "Ready";
-                cooldownProgress.style.width = "100%";
-                mineBtn.disabled = false;
-                return;
-            }
-            
-            const remaining = lastMined + cooldown - now;
-            updateTimerDisplay(cooldownTimer, remaining);
-            cooldownProgress.style.width = `${100 - (remaining / cooldown * 100)}%`;
-            mineBtn.disabled = true;
-            
-            setTimeout(() => updateCooldownTimer(lastMinedTime), 1000);
-        }
-        
-        // Helper to display time
-        function updateTimerDisplay(element, seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
-            
-            element.textContent = `${hours}h ${minutes}m ${secs}s`;
-        }
-        
-        // Show toast notification
-        function showToast(title, message, type = "info") {
-            toastTitle.textContent = title;
-            toastMessage.textContent = message;
-            
-            // Set color based on type
-            const toastHeader = document.querySelector('.toast-header');
-            toastHeader.className = 'toast-header';
-            
-            if (type === "success") {
-                toastHeader.classList.add('bg-success', 'text-white');
-            } else if (type === "error") {
-                toastHeader.classList.add('bg-danger', 'text-white');
-            } else {
-                toastHeader.classList.add('bg-primary', 'text-white');
-            }
-            
-            toastSpinner.classList.remove('d-none');
-            transactionToast.show();
-            
-            // Hide spinner after 3 seconds if not already hidden
-            setTimeout(() => {
-                toastSpinner.classList.add('d-none');
-            }, 3000);
-        }
-        
-        // Handle account changes
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (newAccounts) => {
-                accounts = newAccounts;
-                updateWalletInfo();
-                loadBalances();
             });
+            
+            // Deposit USDT
+            depositBtn.addEventListener('click', async () => {
+                try {
+                    showToast("Depositing", "Approving USDT transfer...");
+                    
+                    // Approve USDT transfer
+                    await usdtContract.methods.approve(qxdtAddress, web3.utils.toWei('1', 'ether')).send({
+                        from: accounts[0]
+                    });
+                    
+                    showToast("Depositing", "Completing deposit...");
+                    
+                    // Complete deposit
+                    await qxdtContract.methods.depositAndClaimBack().send({
+                        from: accounts[0]
+                    });
+                    
+                    showToast("Success", "Deposit successful!", "success");
+                    loadBalances();
+                    
+                } catch (error) {
+                    showToast("Error", error.message, "error");
+                    console.error(error);
+                }
+            });
+            
+            // Buy QXDT
+            buyBtn.addEventListener('click', async () => {
+                const amount = buyAmount.value;
+                if (!amount || amount <= 0) {
+                    showToast("Error", "Please enter a valid amount", "error");
+                    return;
+                }
+                
+                try {
+                    showToast("Buying", "Approving USDT transfer...");
+                    
+                    // Approve USDT transfer
+                    await usdtContract.methods.approve(qxdtAddress, web3.utils.toWei(amount, 'ether')).send({
+                        from: accounts[0]
+                    });
+                    
+                    showToast("Buying", "Completing purchase...");
+                    
+                    // Buy QXDT
+                    await qxdtContract.methods.buyQXDT(amount).send({
+                        from: accounts[0]
+                    });
+                    
+                    showToast("Success", "Purchase successful!", "success");
+                    loadBalances();
+                    
+                } catch (error) {
+                    showToast("Error", error.message, "error");
+                    console.error(error);
+                }
+            });
+            
+            // Update wallet info
+            function updateWalletInfo() {
+                if (accounts.length > 0) {
+                    const shortAddress = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
+                    walletAddress.textContent = shortAddress;
+                    walletAddress.title = accounts[0];
+                }
+            }
+            
+            // Load balances
+            async function loadBalances() {
+                if (!accounts.length || !qxdtContract || !usdtContract) {
+                    console.error("Contracts not initialized or no accounts");
+                    return;
+                }
+                
+                try {
+                    // Get balances
+                    const qxdtBal = await qxdtContract.methods.balanceOf(accounts[0]).call();
+                    const usdtBal = await usdtContract.methods.balanceOf(accounts[0]).call();
+                    const ethBal = await web3.eth.getBalance(accounts[0]);
+                    
+                    // Display balances
+                    qxdtBalance.textContent = (qxdtBal / 1e8).toFixed(2);
+                    usdtBalance.textContent = (usdtBal / 1e18).toFixed(2);
+                    ethBalance.textContent = parseFloat(web3.utils.fromWei(ethBal, 'ether')).toFixed(4);
+                    
+                    // Get mining info
+                    const reward = await qxdtContract.methods.getCurrentReward().call();
+                    currentReward.textContent = (reward / 1e8).toFixed(4);
+                    
+                    const lastMined = await qxdtContract.methods.lastMinedTime(accounts[0]).call();
+                    updateCooldownTimer(lastMined);
+                    
+                } catch (error) {
+                    console.error("Error loading balances:", error);
+                    showToast("Error", "Failed to load balances", "error");
+                }
+            }
+            
+            // Update cooldown timer
+            function updateCooldownTimer(lastMinedTime) {
+                const cooldown = 57600; // 16 hours in seconds
+                const lastMined = parseInt(lastMinedTime);
+                const now = Math.floor(Date.now() / 1000);
+                
+                if (lastMined === 0 || now >= lastMined + cooldown) {
+                    cooldownTimer.textContent = "Ready";
+                    cooldownProgress.style.width = "100%";
+                    mineBtn.disabled = false;
+                    return;
+                }
+                
+                const remaining = lastMined + cooldown - now;
+                updateTimerDisplay(cooldownTimer, remaining);
+                cooldownProgress.style.width = `${100 - (remaining / cooldown * 100)}%`;
+                mineBtn.disabled = true;
+                
+                setTimeout(() => updateCooldownTimer(lastMinedTime), 1000);
+            }
+            
+            // Helper to display time
+            function updateTimerDisplay(element, seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                element.textContent = `${hours}h ${minutes}m ${secs}s`;
+            }
+            
+            // Show toast notification
+            function showToast(title, message, type = "info") {
+                toastTitle.textContent = title;
+                toastMessage.textContent = message;
+                
+                // Set color based on type
+                const toastHeader = document.querySelector('.toast-header');
+                toastHeader.className = 'toast-header';
+                
+                if (type === "success") {
+                    toastHeader.classList.add('bg-success', 'text-white');
+                } else if (type === "error") {
+                    toastHeader.classList.add('bg-danger', 'text-white');
+                } else {
+                    toastHeader.classList.add('bg-primary', 'text-white');
+                }
+                
+                toastSpinner.classList.remove('d-none');
+                transactionToast.show();
+                
+                // Hide spinner after 3 seconds if not already hidden
+                setTimeout(() => {
+                    toastSpinner.classList.add('d-none');
+                }, 3000);
+            }
+            
+            // Handle account changes
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', (newAccounts) => {
+                    accounts = newAccounts;
+                    updateWalletInfo();
+                    loadBalances();
+                });
+            }
         }
     </script>
 </body>

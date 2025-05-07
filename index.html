@@ -584,20 +584,28 @@
         const transactionAlert = document.getElementById('transactionAlert');
         
         // Initialize the app
-        async function init() {
-            // Check if MetaMask is installed
-            if (window.ethereum) {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                
-                // Listen for account changes
-                window.ethereum.on('accountsChanged', (accounts) => {
-                    if (accounts.length > 0) {
-                        currentAccount = accounts[0];
-                        updateUI();
-                    } else {
-                        handleDisconnect();
-                    }
-                });
+      async function init() {
+    if (window.ethereum) {
+        try {
+            // Initialize provider with network settings
+            provider = new ethers.providers.Web3Provider(window.ethereum, {
+                name: 'matic',
+                chainId: 137,
+                ensAddress: null
+            });
+
+            // Get network to verify connection
+            const network = await provider.getNetwork();
+            console.log("Connected to:", network.name);
+
+            // Rest of your initialization code...
+            
+        } catch (error) {
+            console.error("Initialization error:", error);
+        }
+    }
+    // Rest of your init code...
+}
                 
                 // Listen for chain changes
                 window.ethereum.on('chainChanged', () => {
